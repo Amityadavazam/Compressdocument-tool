@@ -1,0 +1,2097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard - Compress Document Pro</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CSS -->
+    <style>
+        /* ====== RESET & BASE STYLES ====== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --gray-light: #e2e8f0;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        body.dark-mode {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --dark: #0f172a;
+            --light: #1e293b;
+            --gray: #94a3b8;
+            --gray-light: #334155;
+            --border: #334155;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            transition: var(--transition);
+            min-height: 100vh;
+        }
+
+        /* ====== LAYOUT ====== */
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ====== SIDEBAR ====== */
+        .sidebar {
+            width: 280px;
+            background: white;
+            border-right: 1px solid var(--border);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: var(--transition);
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        body.dark-mode .sidebar {
+            background: var(--light);
+            border-right-color: var(--border);
+        }
+
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .user-avatar-large {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            font-weight: 600;
+            margin: 0 auto 15px;
+            border: 4px solid var(--gray-light);
+        }
+
+        body.dark-mode .user-avatar-large {
+            border-color: var(--gray-light);
+        }
+
+        .user-info h3 {
+            font-size: 18px;
+            margin-bottom: 5px;
+            color: var(--dark);
+        }
+
+        body.dark-mode .user-info h3 {
+            color: white;
+        }
+
+        .user-info p {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .sidebar-nav {
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 25px;
+            color: var(--gray);
+            text-decoration: none;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(var(--primary-rgb), 0.05);
+            color: var(--primary);
+            border-left-color: var(--primary);
+        }
+
+        .nav-item.active {
+            background: rgba(var(--primary-rgb), 0.1);
+            color: var(--primary);
+            border-left-color: var(--primary);
+            font-weight: 500;
+        }
+
+        body.dark-mode .nav-item.active {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 20px;
+            margin-top: auto;
+            border-top: 1px solid var(--border);
+        }
+
+        .stats-card {
+            background: rgba(var(--primary-rgb), 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        body.dark-mode .stats-card {
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .stat:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: var(--gray);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* ====== MAIN CONTENT ====== */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 25px;
+            transition: var(--transition);
+        }
+
+        /* ====== HEADER ====== */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: var(--dark);
+        }
+
+        body.dark-mode .header-left h1 {
+            color: white;
+        }
+
+        .header-left p {
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .theme-toggle {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--dark);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: var(--transition);
+        }
+
+        body.dark-mode .theme-toggle {
+            background: var(--light);
+            color: white;
+            border-color: var(--border);
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        /* ====== CONTENT SECTIONS ====== */
+        .dashboard-section {
+            background: white;
+            border-radius: var(--radius);
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: none;
+        }
+
+        body.dark-mode .dashboard-section {
+            background: var(--light);
+            border-color: var(--border);
+        }
+
+        .dashboard-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--dark);
+        }
+
+        body.dark-mode .section-title {
+            color: white;
+        }
+
+        .section-title i {
+            color: var(--primary);
+        }
+
+        /* ====== STATS GRID ====== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        body.dark-mode .stat-card {
+            background: var(--light);
+            border-color: var(--border);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+
+        .stat-1 .stat-icon {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+        }
+
+        .stat-2 .stat-icon {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--secondary);
+        }
+
+        .stat-3 .stat-icon {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .stat-4 .stat-icon {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .stat-value-large {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: var(--dark);
+        }
+
+        body.dark-mode .stat-value-large {
+            color: white;
+        }
+
+        .stat-label-large {
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        /* ====== ACTIVITY LIST ====== */
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(var(--primary-rgb), 0.03);
+            border: 1px solid var(--border);
+        }
+
+        body.dark-mode .activity-item {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--border);
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .activity-login .activity-icon {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--secondary);
+        }
+
+        .activity-logout .activity-icon {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .activity-tool .activity-icon {
+            background: rgba(37, 99, 235, 0.2);
+            color: var(--primary);
+        }
+
+        .activity-details {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 500;
+            margin-bottom: 3px;
+            color: var(--dark);
+        }
+
+        body.dark-mode .activity-title {
+            color: white;
+        }
+
+        .activity-time {
+            font-size: 13px;
+            color: var(--gray);
+        }
+
+        .activity-device {
+            font-size: 12px;
+            color: var(--gray);
+            background: rgba(37, 99, 235, 0.1);
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+        /* ====== TOOL TABLE ====== */
+        .tool-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .tool-table th {
+            text-align: left;
+            padding: 15px;
+            border-bottom: 2px solid var(--border);
+            color: var(--gray);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .tool-table td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            color: var(--dark);
+        }
+
+        body.dark-mode .tool-table td {
+            color: white;
+        }
+
+        .tool-table tr:hover {
+            background: rgba(var(--primary-rgb), 0.03);
+        }
+
+        body.dark-mode .tool-table tr:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .tool-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tool-icon-small {
+            width: 35px;
+            height: 35px;
+            border-radius: 8px;
+            background: rgba(37, 99, 235, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .usage-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .usage-frequent {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--secondary);
+        }
+
+        .usage-occasional {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        /* ====== FORMS ====== */
+        .settings-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        body.dark-mode .form-group label {
+            color: white;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            color: var(--dark);
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        body.dark-mode .form-control {
+            background: var(--dark);
+            color: white;
+            border-color: var(--border);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--dark);
+            border: 1px solid var(--border);
+        }
+
+        body.dark-mode .btn-secondary {
+            background: var(--dark);
+            color: white;
+            border-color: var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-light);
+        }
+
+        /* ====== MOBILE MENU ====== */
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ====== LOADING STATES ====== */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 50px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-light);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ====== EMPTY STATES ====== */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+        }
+
+        .empty-icon {
+            font-size: 60px;
+            color: var(--gray-light);
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+
+        body.dark-mode .empty-title {
+            color: white;
+        }
+
+        .empty-description {
+            color: var(--gray);
+            max-width: 400px;
+            margin: 0 auto 30px;
+            line-height: 1.5;
+        }
+
+        /* ====== NOTIFICATIONS ====== */
+        .notification {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(150%);
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, var(--secondary), #059669);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+        }
+
+        .notification.info {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        }
+
+        /* ====== RESPONSIVE DESIGN ====== */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-menu-toggle {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* ====== COLOR VARIABLE ====== */
+        :root {
+            --primary-rgb: 37, 99, 235;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Dashboard Container -->
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="user-avatar-large" id="userAvatar">
+                    <!-- User initial will appear here -->
+                </div>
+                <div class="user-info">
+                    <h3 id="userName">Loading...</h3>
+                    <p id="userEmail">Loading...</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-section="overview">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Dashboard Overview
+                </a>
+                <a href="#" class="nav-item" data-section="activity">
+                    <i class="fas fa-history"></i>
+                    Recent Activity
+                </a>
+                <a href="#" class="nav-item" data-section="tools">
+                    <i class="fas fa-tools"></i>
+                    Tool Usage History
+                </a>
+                <a href="#" class="nav-item" data-section="settings">
+                    <i class="fas fa-user-cog"></i>
+                    Account Settings
+                </a>
+                <a href="#" class="nav-item" data-section="security">
+                    <i class="fas fa-shield-alt"></i>
+                    Security
+                </a>
+                <a href="#" class="nav-item" data-section="premium">
+                    <i class="fas fa-crown"></i>
+                    Go Premium
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="stats-card">
+                    <div class="stat">
+                        <span class="stat-label">Tools Today</span>
+                        <span class="stat-value" id="todayUsage">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Total Tools</span>
+                        <span class="stat-value" id="totalUsage">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Session</span>
+                        <span class="stat-value" id="sessionTime">0m</span>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 15px;">
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="window.location.href='index.html'">
+                        <i class="fas fa-arrow-left"></i> Back to Home
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1>Welcome back, <span id="userGreeting">User</span>!</h1>
+                    <p>Your dashboard is ready with real-time updates</p>
+                </div>
+                <div class="header-right">
+                    <button class="theme-toggle" id="themeToggle">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button class="logout-btn" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </button>
+                </div>
+            </header>
+
+            <!-- Loading State -->
+            <div class="loading" id="loadingState">
+                <div class="spinner"></div>
+                <p>Loading your dashboard...</p>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div id="dashboardContent" style="display: none;">
+                <!-- Overview Section -->
+                <div class="dashboard-section active" id="overviewSection">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-tachometer-alt"></i>
+                            Dashboard Overview
+                        </h2>
+                        <button class="btn btn-secondary" onclick="refreshData()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="stats-grid">
+                        <div class="stat-card stat-1">
+                            <div class="stat-icon">
+                                <i class="fas fa-tools"></i>
+                            </div>
+                            <div class="stat-value-large" id="statsToday">0</div>
+                            <div class="stat-label-large">Tools Used Today</div>
+                        </div>
+                        
+                        <div class="stat-card stat-2">
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-value-large" id="statsTimeSaved">0</div>
+                            <div class="stat-label-large">Minutes Saved</div>
+                        </div>
+                        
+                        <div class="stat-card stat-3">
+                            <div class="stat-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="stat-value-large" id="statsStreak">0</div>
+                            <div class="stat-label-large">Day Streak</div>
+                        </div>
+                        
+                        <div class="stat-card stat-4">
+                            <div class="stat-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="stat-value-large" id="statsPercentile">0%</div>
+                            <div class="stat-label-large">Top User</div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity Preview -->
+                    <div class="section-header" style="margin-top: 40px;">
+                        <h2 class="section-title">
+                            <i class="fas fa-history"></i>
+                            Recent Activity
+                        </h2>
+                        <a href="#" data-section="activity" class="btn btn-secondary">
+                            View All <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                    
+                    <div class="activity-list" id="recentActivity">
+                        <!-- Activity items will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Activity Section -->
+                <div class="dashboard-section" id="activitySection">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-history"></i>
+                            All Activity
+                        </h2>
+                        <div>
+                            <button class="btn btn-secondary" onclick="exportActivity()">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                            <button class="btn btn-secondary" onclick="clearActivity()" style="margin-left: 10px;">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="activity-list" id="allActivity">
+                        <!-- All activity items will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Tools History Section -->
+                <div class="dashboard-section" id="toolsSection">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-tools"></i>
+                            Tool Usage History
+                        </h2>
+                        <button class="btn btn-secondary" onclick="clearToolHistory()">
+                            <i class="fas fa-trash"></i> Clear History
+                        </button>
+                    </div>
+                    
+                    <div style="overflow-x: auto;">
+                        <table class="tool-table">
+                            <thead>
+                                <tr>
+                                    <th>Tool Name</th>
+                                    <th>Last Used</th>
+                                    <th>Usage Count</th>
+                                    <th>Frequency</th>
+                                </tr>
+                            </thead>
+                            <tbody id="toolsTable">
+                                <!-- Tool history rows will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Settings Section -->
+                <div class="dashboard-section" id="settingsSection">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-user-cog"></i>
+                            Account Settings
+                        </h2>
+                    </div>
+
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <div class="user-avatar-large" id="profileAvatar" style="cursor: pointer;" onclick="document.getElementById('avatarUpload').click()">
+                            <!-- Profile avatar -->
+                        </div>
+                        <input type="file" id="avatarUpload" accept="image/*" style="display: none;">
+                        <p style="color: var(--gray); margin-top: 10px; font-size: 14px;">Click to change profile picture</p>
+                    </div>
+
+                    <form class="settings-form" id="settingsForm">
+                        <div class="form-group">
+                            <label for="displayName">Full Name</label>
+                            <input type="text" id="displayName" class="form-control" placeholder="Enter your name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" class="form-control" placeholder="Enter your email" disabled>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input type="tel" id="phone" class="form-control" placeholder="Enter your phone number">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="country">Country</label>
+                            <select id="country" class="form-control">
+                                <option value="">Select Country</option>
+                                <option value="IN">India</option>
+                                <option value="US">United States</option>
+                                <option value="UK">United Kingdom</option>
+                                <option value="AU">Australia</option>
+                                <option value="CA">Canada</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="bio">Bio</label>
+                            <textarea id="bio" class="form-control" rows="3" placeholder="Tell us about yourself"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="button" class="btn btn-secondary" onclick="resetSettingsForm()">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Security Section -->
+                <div class="dashboard-section" id="securitySection">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-shield-alt"></i>
+                            Security Settings
+                        </h2>
+                    </div>
+
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="margin-bottom: 20px; color: var(--dark);">Change Password</h3>
+                        <form id="passwordForm">
+                            <div class="form-group">
+                                <label for="currentPassword">Current Password</label>
+                                <input type="password" id="currentPassword" class="form-control" placeholder="Enter current password">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="newPassword">New Password</label>
+                                <input type="password" id="newPassword" class="form-control" placeholder="Enter new password">
+                                <small style="color: var(--gray); font-size: 12px;">Minimum 8 characters with letters and numbers</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="confirmPassword">Confirm New Password</label>
+                                <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm new password">
+                            </div>
+                            
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-key"></i> Update Password
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border); padding-top: 30px;">
+                        <h3 style="margin-bottom: 20px; color: var(--dark);">Security Options</h3>
+                        
+                        <div style="background: rgba(var(--primary-rgb), 0.05); padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="margin-bottom: 5px;">Two-Factor Authentication</h4>
+                                    <p style="color: var(--gray); font-size: 14px;">Add an extra layer of security</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="twoFactorToggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div style="background: rgba(var(--primary-rgb), 0.05); padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="margin-bottom: 5px;">Login Notifications</h4>
+                                    <p style="color: var(--gray); font-size: 14px;">Get notified of new logins</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="loginNotificationsToggle" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div style="background: rgba(var(--primary-rgb), 0.05); padding: 20px; border-radius: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="margin-bottom: 5px;">Active Sessions</h4>
+                                    <p style="color: var(--gray); font-size: 14px;">Manage your login sessions</p>
+                                </div>
+                                <button class="btn btn-secondary" onclick="manageSessions()">
+                                    Manage
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Premium Section -->
+                <div class="dashboard-section" id="premiumSection">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-crown"></i>
+                            Go Premium
+                        </h2>
+                    </div>
+
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 80px; color: #f59e0b; margin-bottom: 20px;">
+                            <i class="fas fa-crown"></i>
+                        </div>
+                        
+                        <h2 style="font-size: 32px; margin-bottom: 15px; color: var(--dark);">Unlock Premium Features</h2>
+                        <p style="font-size: 18px; color: var(--gray); max-width: 600px; margin: 0 auto 40px; line-height: 1.6;">
+                            Get unlimited access to all tools, priority support, batch processing, and advanced features with our Premium plan.
+                        </p>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; max-width: 900px; margin: 0 auto;">
+                            <!-- Free Plan -->
+                            <div style="background: white; border: 2px solid var(--border); border-radius: 15px; padding: 30px; text-align: left;">
+                                <h3 style="margin-bottom: 20px; font-size: 24px; color: var(--dark);">Free Plan</h3>
+                                <div style="font-size: 36px; font-weight: 700; margin-bottom: 20px; color: var(--dark);">
+                                    $0<span style="font-size: 16px; color: var(--gray);">/month</span>
+                                </div>
+                                <ul style="list-style: none; margin-bottom: 30px;">
+                                    <li style="margin-bottom: 10px;">
+                                        <i class="fas fa-check" style="color: var(--secondary); margin-right: 10px;"></i>
+                                        Basic tools access
+                                    </li>
+                                    <li style="margin-bottom: 10px;">
+                                        <i class="fas fa-check" style="color: var(--secondary); margin-right: 10px;"></i>
+                                        Limited file size (10MB)
+                                    </li>
+                                    <li style="margin-bottom: 10px;">
+                                        <i class="fas fa-times" style="color: var(--danger); margin-right: 10px;"></i>
+                                        No batch processing
+                                    </li>
+                                    <li style="margin-bottom: 10px;">
+                                        <i class="fas fa-times" style="color: var(--danger); margin-right: 10px;"></i>
+                                        Watermarks on output
+                                    </li>
+                                </ul>
+                                <button class="btn btn-secondary" style="width: 100%;" disabled>
+                                    Current Plan
+                                </button>
+                            </div>
+
+                            <!-- Premium Plan -->
+                            <div style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border-radius: 15px; padding: 30px; text-align: left; position: relative;">
+                                <div style="position: absolute; top: 15px; right: 15px; background: white; color: var(--primary); padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                    RECOMMENDED
+                                </div>
+                                <h3 style="margin-bottom: 20px; font-size: 24px;">Premium Plan</h3>
+                                <div style="font-size: 36px; font-weight: 700; margin-bottom: 20px;">
+                                    $9.99<span style="font-size: 16px; opacity: 0.9;">/month</span>
+                                </div>
+                                <ul style="list-style: none; margin-bottom: 30px;">
+                                    <li style="margin-bottom: 10px;">
+                                        <i class="fas fa-check" style="margin-right: 10px;"></i>
+                                        All tools unlocked
+                                    </li>
+                                    <li style="margin-bottom: 10px;">
+                                        <i class="fas fa-check" style="margin-right: 10px;"></i>
+                                        Unlimited file size
+                                    </li>
+                                    <li style="margin-bottom: 10px;">
+                                        <i class="fas fa-check" style="margin-right: 10px;"></i>
+                                        Priority support
+                                    </li>
+                                    <li style="margin-bottom: 10px;">
+                                        <i class="fas fa-check" style="margin-right: 10px;"></i>
+                                        No watermarks
+                                    </li>
+                                    <li style="margin-bottom: 10px;">
+                                        <i class="fas fa-check" style="margin-right: 10px;"></i>
+                                        Advanced AI features
+                                    </li>
+                                </ul>
+                                <button class="btn" style="width: 100%; background: white; color: var(--primary); border: none;" onclick="upgradeToPremium()">
+                                    <i class="fas fa-crown"></i> Upgrade Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer style="margin-top: 50px; padding-top: 30px; border-top: 1px solid var(--border); text-align: center; color: var(--gray); font-size: 14px;">
+                <p>© 2025 Compress Document Pro. All rights reserved.</p>
+                <p style="margin-top: 10px;">Dashboard v2.0 • Last updated: <span id="currentDate"></span></p>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer"></div>
+
+    <!-- Firebase and Dashboard Script -->
+    <script>
+        // ====== FIREBASE CONFIGURATION ======
+        // Replace with your actual Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4y9Q7z0q5L8q7Xq7Xq7Xq7Xq7Xq7Xq7Xq",
+            authDomain: "compress-document-pro.firebaseapp.com",
+            projectId: "compress-document-pro",
+            storageBucket: "compress-document-pro.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef1234567890abcdef"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // ====== GLOBAL VARIABLES ======
+        let currentUser = null;
+        let userData = null;
+        let sessionStartTime = null;
+        let sessionTimer = null;
+
+        // ====== DOM READY ======
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard loaded');
+            
+            // Set current date
+            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // Initialize components
+            initMobileMenu();
+            initNavigation();
+            initTheme();
+            initEventListeners();
+            
+            // Check authentication
+            checkAuthState();
+        });
+
+        // ====== MOBILE MENU ======
+        function initMobileMenu() {
+            const mobileToggle = document.getElementById('mobileMenuToggle');
+            const sidebar = document.getElementById('sidebar');
+
+            mobileToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+                mobileToggle.innerHTML = sidebar.classList.contains('active') 
+                    ? '<i class="fas fa-times"></i>' 
+                    : '<i class="fas fa-bars"></i>';
+            });
+
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 1024) {
+                    if (!sidebar.contains(event.target) && !mobileToggle.contains(event.target)) {
+                        sidebar.classList.remove('active');
+                        mobileToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                    }
+                }
+            });
+        }
+
+        // ====== NAVIGATION ======
+        function initNavigation() {
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Remove active class from all items
+                    navItems.forEach(i => i.classList.remove('active'));
+                    
+                    // Add active class to clicked item
+                    this.classList.add('active');
+                    
+                    // Get section to show
+                    const section = this.getAttribute('data-section');
+                    showSection(section);
+                    
+                    // Close mobile menu if open
+                    if (window.innerWidth <= 1024) {
+                        document.getElementById('sidebar').classList.remove('active');
+                        document.getElementById('mobileMenuToggle').innerHTML = '<i class="fas fa-bars"></i>';
+                    }
+                });
+            });
+
+            // Add click handlers for section links
+            document.querySelectorAll('[data-section]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const section = this.getAttribute('data-section');
+                    if (section) {
+                        e.preventDefault();
+                        showSection(section);
+                    }
+                });
+            });
+        }
+
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.dashboard-section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+
+            // Show selected section
+            const sectionElement = document.getElementById(section + 'Section');
+            if (sectionElement) {
+                sectionElement.classList.add('active');
+            }
+
+            // Update navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-section') === section) {
+                    item.classList.add('active');
+                }
+            });
+
+            // Load section data if needed
+            if (section === 'activity') {
+                loadAllActivities();
+            } else if (section === 'tools') {
+                loadToolHistory();
+            }
+        }
+
+        // ====== THEME MANAGEMENT ======
+        function initTheme() {
+            const themeToggle = document.getElementById('themeToggle');
+            const savedTheme = localStorage.getItem('dashboard-theme') || 'light';
+            
+            // Apply saved theme
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                document.body.classList.remove('dark-mode');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+
+            // Toggle theme
+            themeToggle.addEventListener('click', function() {
+                if (document.body.classList.contains('dark-mode')) {
+                    document.body.classList.remove('dark-mode');
+                    localStorage.setItem('dashboard-theme', 'light');
+                    this.innerHTML = '<i class="fas fa-moon"></i>';
+                    showNotification('Switched to light mode', 'success');
+                } else {
+                    document.body.classList.add('dark-mode');
+                    localStorage.setItem('dashboard-theme', 'dark');
+                    this.innerHTML = '<i class="fas fa-sun"></i>';
+                    showNotification('Switched to dark mode', 'success');
+                }
+            });
+        }
+
+        // ====== AUTHENTICATION ======
+        function checkAuthState() {
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    // User is signed in
+                    currentUser = user;
+                    sessionStartTime = new Date();
+                    startSessionTimer();
+                    loadUserData(user.uid);
+                    logActivity('login');
+                } else {
+                    // User is signed out
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+
+        function loadUserData(userId) {
+            const userDoc = db.collection('users').doc(userId);
+            
+            // Try to get user data from Firestore
+            userDoc.get().then(doc => {
+                if (doc.exists) {
+                    userData = doc.data();
+                    updateUIWithUserData();
+                    showNotification('Welcome back!', 'success');
+                } else {
+                    // Create new user document
+                    createUserDocument(userId);
+                }
+            }).catch(error => {
+                console.error('Error loading user data:', error);
+                // Use mock data if Firebase fails
+                useMockData();
+            });
+        }
+
+        function createUserDocument(userId) {
+            const userDoc = {
+                uid: userId,
+                email: currentUser.email,
+                displayName: currentUser.displayName || currentUser.email.split('@')[0],
+                photoURL: currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.email.split('@')[0])}&background=2563eb&color=fff`,
+                createdAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString(),
+                loginCount: 1,
+                totalToolsUsed: 0,
+                todayUsage: 0,
+                timeSaved: 0,
+                loginStreak: 1,
+                settings: {
+                    theme: localStorage.getItem('dashboard-theme') || 'light',
+                    notifications: true,
+                    twoFactor: false
+                },
+                profile: {
+                    phoneNumber: '',
+                    country: '',
+                    bio: ''
+                }
+            };
+
+            db.collection('users').doc(userId).set(userDoc)
+                .then(() => {
+                    userData = userDoc;
+                    updateUIWithUserData();
+                    showNotification('Account created successfully!', 'success');
+                })
+                .catch(error => {
+                    console.error('Error creating user document:', error);
+                    useMockData();
+                });
+        }
+
+        // ====== MOCK DATA FALLBACK ======
+        function useMockData() {
+            console.log('Using mock data');
+            
+            userData = {
+                uid: 'mock-user-123',
+                email: currentUser?.email || 'demo@example.com',
+                displayName: currentUser?.displayName || 'Demo User',
+                photoURL: currentUser?.photoURL || 'https://ui-avatars.com/api/?name=Demo+User&background=2563eb&color=fff',
+                totalToolsUsed: 42,
+                todayUsage: 5,
+                timeSaved: 210,
+                loginStreak: 7,
+                settings: {
+                    theme: localStorage.getItem('dashboard-theme') || 'light',
+                    notifications: true,
+                    twoFactor: false
+                },
+                profile: {
+                    phoneNumber: '+1234567890',
+                    country: 'IN',
+                    bio: 'Document processing enthusiast'
+                }
+            };
+
+            updateUIWithUserData();
+            loadMockActivities();
+            loadMockToolHistory();
+            showNotification('Using demo data', 'info');
+        }
+
+        // ====== UI UPDATES ======
+        function updateUIWithUserData() {
+            // Hide loading, show content
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('dashboardContent').style.display = 'block';
+
+            // Update user info
+            const userName = userData.displayName || 'User';
+            const userInitial = userName.charAt(0).toUpperCase();
+            const userEmail = userData.email || 'user@example.com';
+
+            document.getElementById('userName').textContent = userName;
+            document.getElementById('userEmail').textContent = userEmail;
+            document.getElementById('userGreeting').textContent = userName;
+            document.getElementById('userAvatar').textContent = userInitial;
+            document.getElementById('profileAvatar').textContent = userInitial;
+
+            // Update avatar with photo if available
+            if (userData.photoURL) {
+                const avatar = document.getElementById('profileAvatar');
+                avatar.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = userData.photoURL;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.borderRadius = '50%';
+                img.style.objectFit = 'cover';
+                avatar.appendChild(img);
+            }
+
+            // Update stats
+            document.getElementById('todayUsage').textContent = userData.todayUsage || 0;
+            document.getElementById('totalUsage').textContent = userData.totalToolsUsed || 0;
+            document.getElementById('statsToday').textContent = userData.todayUsage || 0;
+            document.getElementById('statsTimeSaved').textContent = userData.timeSaved || 0;
+            document.getElementById('statsStreak').textContent = userData.loginStreak || 1;
+            document.getElementById('statsPercentile').textContent = calculatePercentile(userData.totalToolsUsed || 0);
+
+            // Update settings form
+            document.getElementById('displayName').value = userName;
+            document.getElementById('email').value = userEmail;
+            document.getElementById('phone').value = userData.profile?.phoneNumber || '';
+            document.getElementById('country').value = userData.profile?.country || '';
+            document.getElementById('bio').value = userData.profile?.bio || '';
+
+            // Update security toggles
+            document.getElementById('twoFactorToggle').checked = userData.settings?.twoFactor || false;
+            document.getElementById('loginNotificationsToggle').checked = userData.settings?.notifications !== false;
+
+            // Load recent activities
+            loadRecentActivities();
+        }
+
+        function calculatePercentile(toolsUsed) {
+            if (toolsUsed >= 100) return 'Top 5%';
+            if (toolsUsed >= 50) return 'Top 15%';
+            if (toolsUsed >= 20) return 'Top 30%';
+            if (toolsUsed >= 10) return 'Top 50%';
+            if (toolsUsed >= 5) return 'Top 70%';
+            return 'Top 90%';
+        }
+
+        // ====== ACTIVITY FUNCTIONS ======
+        function loadRecentActivities() {
+            const container = document.getElementById('recentActivity');
+            container.innerHTML = '';
+
+            // Mock activities for demo
+            const activities = [
+                { type: 'login', time: 'Just now', device: 'Current Device', title: 'Logged in' },
+                { type: 'tool', time: '2 hours ago', device: 'Windows PC', title: 'Used HEIC to JPG Converter' },
+                { type: 'tool', time: '4 hours ago', device: 'Windows PC', title: 'Used PDF Compressor' },
+                { type: 'logout', time: 'Yesterday', device: 'Mobile', title: 'Logged out' },
+                { type: 'tool', time: '2 days ago', device: 'Mac', title: 'Used Signature Resizer' }
+            ];
+
+            activities.forEach(activity => {
+                const item = createActivityElement(activity);
+                container.appendChild(item);
+            });
+        }
+
+        function loadAllActivities() {
+            const container = document.getElementById('allActivity');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading activities...</p></div>';
+
+            // Simulate loading
+            setTimeout(() => {
+                container.innerHTML = '';
+
+                // Mock extended activities
+                const activities = [
+                    { type: 'login', time: 'Just now', device: 'Current Device', title: 'Logged in' },
+                    { type: 'tool', time: '2 hours ago', device: 'Windows PC', title: 'Used HEIC to JPG Converter' },
+                    { type: 'tool', time: '4 hours ago', device: 'Windows PC', title: 'Used PDF Compressor' },
+                    { type: 'logout', time: 'Yesterday', device: 'Mobile', title: 'Logged out' },
+                    { type: 'tool', time: '2 days ago', device: 'Mac', title: 'Used Signature Resizer' },
+                    { type: 'tool', time: '3 days ago', device: 'Windows PC', title: 'Used Resume Maker' },
+                    { type: 'login', time: '3 days ago', device: 'Mac', title: 'Logged in' },
+                    { type: 'tool', time: '4 days ago', device: 'Mobile', title: 'Used QR Generator' },
+                    { type: 'tool', time: '5 days ago', device: 'Windows PC', title: 'Used Aadhaar Cropper' },
+                    { type: 'logout', time: '1 week ago', device: 'Windows PC', title: 'Logged out' }
+                ];
+
+                if (activities.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon"><i class="fas fa-history"></i></div>
+                            <h3 class="empty-title">No Activity Yet</h3>
+                            <p class="empty-description">Your activity will appear here once you start using our tools.</p>
+                            <button class="btn btn-primary" onclick="window.location.href='index.html'">
+                                <i class="fas fa-tools"></i> Start Using Tools
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                activities.forEach(activity => {
+                    const item = createActivityElement(activity);
+                    container.appendChild(item);
+                });
+            }, 1000);
+        }
+
+        function loadMockActivities() {
+            // This would load from localStorage or generate mock activities
+            console.log('Loading mock activities');
+        }
+
+        function createActivityElement(activity) {
+            const div = document.createElement('div');
+            div.className = `activity-item activity-${activity.type}`;
+            
+            let icon, iconClass;
+            if (activity.type === 'login') {
+                icon = 'fa-sign-in-alt';
+                iconClass = 'activity-login';
+            } else if (activity.type === 'logout') {
+                icon = 'fa-sign-out-alt';
+                iconClass = 'activity-logout';
+            } else {
+                icon = 'fa-tools';
+                iconClass = 'activity-tool';
+            }
+
+            div.innerHTML = `
+                <div class="activity-icon ${iconClass}">
+                    <i class="fas ${icon}"></i>
+                </div>
+                <div class="activity-details">
+                    <div class="activity-title">${activity.title}</div>
+                    <div class="activity-time">${activity.time}</div>
+                </div>
+                <div class="activity-device">${activity.device}</div>
+            `;
+
+            return div;
+        }
+
+        function logActivity(type) {
+            if (!currentUser) return;
+
+            const activity = {
+                userId: currentUser.uid,
+                type: type,
+                timestamp: new Date().toISOString(),
+                device: getDeviceInfo()
+            };
+
+            // Save to Firestore
+            db.collection('activities').add(activity).catch(error => {
+                console.error('Error logging activity:', error);
+            });
+        }
+
+        // ====== TOOL HISTORY ======
+        function loadToolHistory() {
+            const tableBody = document.getElementById('toolsTable');
+            tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px;"><div class="spinner"></div><p>Loading tool history...</p></td></tr>';
+
+            // Simulate loading
+            setTimeout(() => {
+                // Mock tool history
+                const tools = [
+                    { name: 'HEIC to JPG Converter', lastUsed: '2 hours ago', count: 12, frequency: 'frequent' },
+                    { name: 'PDF Compressor', lastUsed: '4 hours ago', count: 8, frequency: 'frequent' },
+                    { name: 'Signature Resizer', lastUsed: '2 days ago', count: 5, frequency: 'occasional' },
+                    { name: 'Resume Maker', lastUsed: '3 days ago', count: 3, frequency: 'occasional' },
+                    { name: 'Aadhaar Cropper', lastUsed: '1 week ago', count: 2, frequency: 'occasional' },
+                    { name: 'QR Generator', lastUsed: '2 weeks ago', count: 1, frequency: 'occasional' }
+                ];
+
+                if (tools.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 40px;">
+                                <div class="empty-state">
+                                    <div class="empty-icon"><i class="fas fa-tools"></i></div>
+                                    <h3 class="empty-title">No Tool Usage</h3>
+                                    <p class="empty-description">Your tool usage history will appear here.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tableBody.innerHTML = '';
+                tools.forEach(tool => {
+                    const row = document.createElement('tr');
+                    const frequencyClass = tool.frequency === 'frequent' ? 'usage-frequent' : 'usage-occasional';
+                    const frequencyText = tool.frequency === 'frequent' ? 'Frequent' : 'Occasional';
+
+                    row.innerHTML = `
+                        <td>
+                            <div class="tool-name">
+                                <div class="tool-icon-small">
+                                    <i class="fas ${getToolIcon(tool.name)}"></i>
+                                </div>
+                                <span>${tool.name}</span>
+                            </div>
+                        </td>
+                        <td>${tool.lastUsed}</td>
+                        <td>${tool.count}</td>
+                        <td><span class="usage-badge ${frequencyClass}">${frequencyText}</span></td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }, 1000);
+        }
+
+        function loadMockToolHistory() {
+            // This would load from localStorage
+            console.log('Loading mock tool history');
+        }
+
+        function getToolIcon(toolName) {
+            const icons = {
+                'HEIC': 'fa-mobile-alt',
+                'PDF': 'fa-file-pdf',
+                'Signature': 'fa-pen-nib',
+                'Resume': 'fa-file-contract',
+                'Aadhaar': 'fa-id-card',
+                'QR': 'fa-qrcode',
+                'Image': 'fa-image',
+                'Word': 'fa-file-word',
+                'Excel': 'fa-file-excel'
+            };
+
+            for (const [key, icon] of Object.entries(icons)) {
+                if (toolName.includes(key)) {
+                    return icon;
+                }
+            }
+
+            return 'fa-tools';
+        }
+
+        // ====== SETTINGS FUNCTIONS ======
+        function initEventListeners() {
+            // Settings form
+            document.getElementById('settingsForm').addEventListener('submit', saveSettings);
+            
+            // Password form
+            document.getElementById('passwordForm').addEventListener('submit', changePassword);
+            
+            // Logout button
+            document.getElementById('logoutBtn').addEventListener('click', logoutUser);
+            
+            // Avatar upload
+            document.getElementById('avatarUpload').addEventListener('change', handleAvatarUpload);
+            
+            // Security toggles
+            document.getElementById('twoFactorToggle').addEventListener('change', toggleTwoFactor);
+            document.getElementById('loginNotificationsToggle').addEventListener('change', toggleLoginNotifications);
+        }
+
+        function saveSettings(e) {
+            e.preventDefault();
+            
+            if (!currentUser || !userData) return;
+
+            const updates = {
+                displayName: document.getElementById('displayName').value.trim(),
+                'profile.phoneNumber': document.getElementById('phone').value.trim(),
+                'profile.country': document.getElementById('country').value,
+                'profile.bio': document.getElementById('bio').value.trim(),
+                lastUpdated: new Date().toISOString()
+            };
+
+            // Update in Firestore
+            db.collection('users').doc(currentUser.uid).update(updates)
+                .then(() => {
+                    // Update local data
+                    Object.assign(userData, updates);
+                    updateUIWithUserData();
+                    showNotification('Settings saved successfully!', 'success');
+                    logActivity('settings_update');
+                })
+                .catch(error => {
+                    console.error('Error saving settings:', error);
+                    showNotification('Error saving settings', 'error');
+                });
+        }
+
+        function resetSettingsForm() {
+            if (userData) {
+                document.getElementById('displayName').value = userData.displayName || '';
+                document.getElementById('phone').value = userData.profile?.phoneNumber || '';
+                document.getElementById('country').value = userData.profile?.country || '';
+                document.getElementById('bio').value = userData.profile?.bio || '';
+                showNotification('Form reset to saved values', 'info');
+            }
+        }
+
+        function changePassword(e) {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showNotification('Please fill all password fields', 'error');
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                showNotification('Password must be at least 8 characters', 'error');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showNotification('Passwords do not match', 'error');
+                return;
+            }
+
+            // In a real app, you would reauthenticate and update password
+            // For demo, we'll just show a success message
+            showNotification('Password updated successfully!', 'success');
+            document.getElementById('passwordForm').reset();
+            logActivity('password_change');
+        }
+
+        function handleAvatarUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file
+            if (!file.type.startsWith('image/')) {
+                showNotification('Please select an image file', 'error');
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification('Image must be less than 5MB', 'error');
+                return;
+            }
+
+            // Preview image
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const avatar = document.getElementById('profileAvatar');
+                avatar.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.borderRadius = '50%';
+                img.style.objectFit = 'cover';
+                avatar.appendChild(img);
+                
+                // In a real app, upload to Firebase Storage here
+                showNotification('Profile picture updated!', 'success');
+                logActivity('avatar_update');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function toggleTwoFactor(e) {
+            const enabled = e.target.checked;
+            
+            if (!currentUser) return;
+
+            db.collection('users').doc(currentUser.uid).update({
+                'settings.twoFactor': enabled
+            })
+            .then(() => {
+                showNotification(`Two-factor authentication ${enabled ? 'enabled' : 'disabled'}`, 'success');
+                logActivity(enabled ? '2fa_enabled' : '2fa_disabled');
+            })
+            .catch(error => {
+                console.error('Error updating 2FA:', error);
+                e.target.checked = !enabled;
+                showNotification('Error updating 2FA setting', 'error');
+            });
+        }
+
+        function toggleLoginNotifications(e) {
+            const enabled = e.target.checked;
+            
+            if (!currentUser) return;
+
+            db.collection('users').doc(currentUser.uid).update({
+                'settings.notifications': enabled
+            })
+            .then(() => {
+                showNotification(`Login notifications ${enabled ? 'enabled' : 'disabled'}`, 'success');
+            })
+            .catch(error => {
+                console.error('Error updating notifications:', error);
+                e.target.checked = !enabled;
+                showNotification('Error updating notification setting', 'error');
+            });
+        }
+
+        // ====== UTILITY FUNCTIONS ======
+        function getDeviceInfo() {
+            const ua = navigator.userAgent;
+            
+            if (/Mobile|Android|iPhone|iPad|iPod/i.test(ua)) {
+                return 'Mobile';
+            } else if (/Windows/i.test(ua)) {
+                return 'Windows PC';
+            } else if (/Mac/i.test(ua)) {
+                return 'Mac';
+            } else if (/Linux/i.test(ua)) {
+                return 'Linux PC';
+            }
+            
+            return 'Unknown Device';
+        }
+
+        function startSessionTimer() {
+            clearInterval(sessionTimer);
+            sessionStartTime = new Date();
+            
+            sessionTimer = setInterval(() => {
+                if (sessionStartTime) {
+                    const now = new Date();
+                    const diffMinutes = Math.floor((now - sessionStartTime) / (1000 * 60));
+                    document.getElementById('sessionTime').textContent = `${diffMinutes}m`;
+                }
+            }, 60000); // Update every minute
+        }
+
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Show with animation
+            setTimeout(() => notification.classList.add('show'), 10);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 500);
+            }, 5000);
+        }
+
+        function logoutUser() {
+            logActivity('logout');
+            clearInterval(sessionTimer);
+            
+            auth.signOut().then(() => {
+                window.location.href = 'index.html';
+            }).catch(error => {
+                console.error('Error signing out:', error);
+                showNotification('Error signing out', 'error');
+            });
+        }
+
+        function refreshData() {
+            showNotification('Refreshing data...', 'info');
+            if (currentUser) {
+                loadUserData(currentUser.uid);
+            }
+        }
+
+        function exportActivity() {
+            showNotification('Activity export feature coming soon!', 'info');
+        }
+
+        function clearActivity() {
+            if (confirm('Are you sure you want to clear all activity history?')) {
+                showNotification('Activity history cleared', 'success');
+                document.getElementById('allActivity').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fas fa-history"></i></div>
+                        <h3 class="empty-title">No Activity Yet</h3>
+                        <p class="empty-description">Your activity history has been cleared.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function clearToolHistory() {
+            if (confirm('Are you sure you want to clear tool usage history?')) {
+                showNotification('Tool history cleared', 'success');
+                document.getElementById('toolsTable').innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 40px;">
+                            <div class="empty-state">
+                                <div class="empty-icon"><i class="fas fa-tools"></i></div>
+                                <h3 class="empty-title">No Tool Usage</h3>
+                                <p class="empty-description">Your tool usage history has been cleared.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function manageSessions() {
+            showNotification('Session management coming soon!', 'info');
+        }
+
+        function upgradeToPremium() {
+            showNotification('Premium upgrade feature coming soon!', 'info');
+        }
+
+        // Add switch styles
+        const switchStyles = `
+            .switch {
+                position: relative;
+                display: inline-block;
+                width: 60px;
+                height: 34px;
+            }
+            
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+            
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #ccc;
+                transition: .4s;
+                border-radius: 34px;
+            }
+            
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 26px;
+                width: 26px;
+                left: 4px;
+                bottom: 4px;
+                background-color: white;
+                transition: .4s;
+                border-radius: 50%;
+            }
+            
+            input:checked + .slider {
+                background-color: var(--primary);
+            }
+            
+            input:checked + .slider:before {
+                transform: translateX(26px);
+            }
+        `;
+
+        const style = document.createElement('style');
+        style.textContent = switchStyles;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
